@@ -6,6 +6,8 @@
     <title>Rotinas Compartilhadas</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
@@ -139,12 +141,16 @@
 
     <!-- FOOTER -->
     <footer class="text-center py-4 text-xs text-slate-400">
-        Gerenciador de Rotinas Compartilhadas • Baseado em Google Sheets
+        Gerenciador de Rotinas Compartilhadas • Baseado em Supabase & GitHub Pages
     </footer>
 
-    <!-- SCRIPT DE CONEXÃO E LÓGICA -->
+    <!-- SCRIPT DE CONEXÃO E LÓGICA COM SUPABASE -->
     <script>
-        const URL_API = 'https://script.google.com/macros/s/AKfycbwHlUD1T05j9JpESqonKJi_qJubP-5nXHYesBy6MxCtDB7xYwccFMT0R6WmdRRelnWyfg/exec';
+        // COLE SUA URL E CHAVE DO SUPABASE AQUI ABAIXO:
+        const SUPABASE_URL = 'https://qfisuravprsqpzrsbzyt.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmaXN1cmF2cHJzcXB6cnNienl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDYyODIsImV4cCI6MjEwNTU4MjI4Mn0.PjuD-p7UJYAufZgafzNV3dTFfmkRK_ba11k0GeHSGK8';
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let usuarioLogado = JSON.parse(localStorage.getItem('usuario_rotinas')) || null;
         let gruposUsuario = [];
@@ -174,33 +180,25 @@
             document.getElementById('auth-mensagem').innerText = '';
         }
 
-        async function requisicaoAPI(dados) {
-            try {
-                let response = await fetch(URL_API, {
-                    method: 'POST',
-                    body: JSON.stringify(dados),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                });
-                return await response.json();
-            } catch (erro) {
-                console.error("Erro na requisição:", erro);
-                return { status: "erro", mensagem: "Falha de comunicação com o servidor." };
-            }
-        }
-
         async function tratarLogin(e) {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
             const senha = document.getElementById('login-senha').value;
             
-            const res = await requisicaoAPI({ acao: "login", email, senha });
-            if (res.status === "sucesso") {
-                usuarioLogado = res.usuario;
+            const { data, error } = await supabaseClient
+                .from('usuarios')
+                .select('*')
+                .eq('email', email)
+                .eq('senha', senha)
+                .single();
+
+            if (error || !data) {
+                document.getElementById('auth-mensagem').innerText = "E-mail ou senha incorretos.";
+                document.getElementById('auth-mensagem').className = "mt-4 text-center text-sm text-red-600";
+            } else {
+                usuarioLogado = { id: data.id, nome: data.nome, email: data.email };
                 localStorage.setItem('usuario_rotinas', JSON.stringify(usuarioLogado));
                 entrarNoSistema();
-            } else {
-                document.getElementById('auth-mensagem').innerText = res.mensagem;
-                document.getElementById('auth-mensagem').className = "mt-4 text-center text-sm text-red-600";
             }
         }
 
@@ -210,14 +208,19 @@
             const email = document.getElementById('cad-email').value;
             const senha = document.getElementById('cad-senha').value;
 
-            const res = await requisicaoAPI({ acao: "cadastrar", nome, email, senha });
-            if (res.status === "sucesso") {
-                usuarioLogado = res.usuario;
+            const { data, error } = await supabaseClient
+                .from('usuarios')
+                .insert([{ nome, email, senha }])
+                .select()
+                .single();
+
+            if (error) {
+                document.getElementById('auth-mensagem').innerText = "Erro ao cadastrar (E-mail já pode estar em uso).";
+                document.getElementById('auth-mensagem').className = "mt-4 text-center text-sm text-red-600";
+            } else {
+                usuarioLogado = { id: data.id, nome: data.nome, email: data.email };
                 localStorage.setItem('usuario_rotinas', JSON.stringify(usuarioLogado));
                 entrarNoSistema();
-            } else {
-                document.getElementById('auth-mensagem').innerText = res.mensagem;
-                document.getElementById('auth-mensagem').className = "mt-4 text-center text-sm text-red-600";
             }
         }
 
@@ -238,12 +241,38 @@
         }
 
         async function carregarDadosUsuario() {
-            const res = await requisicaoAPI({ acao: "listar_dados_usuario", id_usuario: usuarioLogado.id });
-            if (res.status === "sucesso") {
-                gruposUsuario = res.grupos;
-                renderizarGrupos();
-                renderizarConvites(res.convites);
+            // Busca membros do usuário
+            const { data: membros, error } = await supabaseClient
+                .from('membros_grupo')
+                .select('id_grupo, status_convite, papel, grupos(id, nome_grupo, dono_id)')
+                .eq('id_usuario', usuarioLogado.id);
+
+            if (error) {
+                console.error("Erro ao carregar dados:", error);
+                return;
             }
+
+            gruposUsuario = [];
+            let convitesPendentes = [];
+
+            membros.forEach(m => {
+                if (m.grupos) {
+                    let grupoObj = {
+                        id: m.grupos.id,
+                        nome: m.grupos.nome_grupo,
+                        dono_id: m.grupos.dono_id,
+                        papel: m.papel
+                    };
+                    if (m.status_convite === 'Aceito') {
+                        gruposUsuario.push(grupoObj);
+                    } else if (m.status_convite === 'Pendente') {
+                        convitesPendentes.push(grupoObj);
+                    }
+                }
+            });
+
+            renderizarGrupos();
+            renderizarConvites(convitesPendentes);
         }
 
         function renderizarGrupos() {
@@ -260,7 +289,7 @@
             gruposUsuario.forEach((g) => {
                 let opt = document.createElement('option');
                 opt.value = g.id;
-                opt.innerText = g.nome + (String(g.dono_id) === String(usuarioLogado.id) ? ' (Admin)' : '');
+                opt.innerText = g.nome + (g.dono_id === usuarioLogado.id ? ' (Admin)' : '');
                 select.appendChild(opt);
             });
 
@@ -304,16 +333,16 @@
         }
 
         async function responderConvite(idGrupo, statusResposta) {
-            const res = await requisicaoAPI({
-                acao: "responder_convite",
-                id_grupo: idGrupo,
-                id_usuario: usuarioLogado.id,
-                status_resposta: statusResposta
-            });
-            if (res.status === "sucesso") {
+            const { error } = await supabaseClient
+                .from('membros_grupo')
+                .update({ status_convite: statusResposta })
+                .eq('id_grupo', idGrupo)
+                .eq('id_usuario', usuarioLogado.id);
+
+            if (!error) {
                 carregarDadosUsuario();
             } else {
-                alert(res.mensagem);
+                alert("Erro ao responder convite.");
             }
         }
 
@@ -330,33 +359,53 @@
             const nomeGrupo = document.getElementById('input-nome-grupo').value;
             if (!nomeGrupo) return;
 
-            const res = await requisicaoAPI({
-                acao: "criar_grupo",
-                nome_grupo: nomeGrupo,
-                dono_id: usuarioLogado.id
-            });
+            // 1. Cria o grupo
+            const { data: grupoData, error: grupoError } = await supabaseClient
+                .from('grupos')
+                .insert([{ nome_grupo: nomeGrupo, dono_id: usuarioLogado.id }])
+                .select()
+                .single();
 
-            if (res.status === "sucesso") {
-                fecharModalCriarGrupo();
-                carregarDadosUsuario();
-            } else {
-                alert(res.mensagem);
+            if (grupoError) {
+                alert("Erro ao criar grupo.");
+                return;
             }
+
+            // 2. Adiciona o criador como Membro Admin aceito
+            await supabaseClient
+                .from('membros_grupo')
+                .insert([{ id_grupo: grupoData.id, id_usuario: usuarioLogado.id, status_convite: 'Aceito', papel: 'Admin' }]);
+
+            fecharModalCriarGrupo();
+            carregarDadosUsuario();
         }
 
         async function enviarConvite() {
             const emailConvidado = document.getElementById('email-convidado').value;
             if (!emailConvidado || !grupoAtivoAtual) return;
 
-            const res = await requisicaoAPI({
-                acao: "convidar_membro",
-                id_grupo: grupoAtivoAtual.id,
-                email_convidado: emailConvidado
-            });
+            // Procura o usuário pelo email
+            const { data: userConvidado, error: userError } = await supabaseClient
+                .from('usuarios')
+                .select('id')
+                .eq('email', emailConvidado)
+                .single();
 
-            alert(res.mensagem);
-            if (res.status === "sucesso") {
+            if (userError || !userConvidado) {
+                alert("Usuário com este e-mail não encontrado no sistema.");
+                return;
+            }
+
+            // Insere o convite
+            const { error } = await supabaseClient
+                .from('membros_grupo')
+                .insert([{ id_grupo: grupoAtivoAtual.id, id_usuario: userConvidado.id, status_convite: 'Pendente', papel: 'Membro' }]);
+
+            if (!error) {
+                alert("Convite enviado com sucesso!");
                 document.getElementById('email-convidado').value = '';
+            } else {
+                alert("Este usuário já foi convidado ou já faz parte do grupo.");
             }
         }
 
@@ -364,15 +413,14 @@
             if (!grupoAtivoAtual) return;
             const dataStr = document.getElementById('filtro-data').value;
 
-            try {
-                let res = await fetch(`${URL_API}?acao=obter_rotinas&id_grupo=${grupoAtivoAtual.id}&data=${dataStr}`);
-                let dados = await res.json();
+            const { data: rotinas, error } = await supabaseClient
+                .from('rotinas_log')
+                .select('*, usuarios(nome)')
+                .eq('id_grupo', grupoAtivoAtual.id)
+                .eq('data', dataStr);
 
-                if (dados.status === "sucesso") {
-                    renderizarRotinas(dados.rotinas);
-                }
-            } catch (e) {
-                console.error("Erro ao carregar rotinas", e);
+            if (!error) {
+                renderizarRotinas(rotinas);
             }
         }
 
@@ -387,15 +435,16 @@
 
             rotinas.forEach(r => {
                 let concluida = r.status === "Concluido";
+                let nomeResponsavel = r.usuarios ? r.usuarios.nome : "Desconhecido";
                 let div = document.createElement('div');
                 div.className = "py-3 flex items-center justify-between";
                 
                 div.innerHTML = `
                     <div class="flex items-center space-x-3">
-                        <input type="checkbox" ${concluida ? 'checked' : ''} onchange="alternarStatusRotina('${r.id_tarefa}', this.checked)" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer">
+                        <input type="checkbox" ${concluida ? 'checked' : ''} onchange="alternarStatusRotina('${r.id}', this.checked)" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer">
                         <div>
-                            <p class="text-sm font-medium ${concluida ? 'line-through text-slate-400' : 'text-slate-800'}">${r.titulo}</p>
-                            ${concluida ? `<p class="text-xs text-emerald-600 font-medium">Feito por ${r.feito_por_nome} às ${r.horario}</p>` : ''}
+                            <p class="text-sm font-medium ${concluida ? 'line-through text-slate-400' : 'text-slate-800'}">${r.titulo_tarefa}</p>
+                            ${concluida ? `<p class="text-xs text-emerald-600 font-medium">Feito por ${nomeResponsavel} às ${r.horario_conclusao}</p>` : ''}
                         </div>
                     </div>
                 `;
@@ -409,37 +458,40 @@
             const dataStr = document.getElementById('filtro-data').value;
             if (!titulo || !grupoAtivoAtual) return;
 
-            const res = await requisicaoAPI({
-                acao: "salvar_rotina",
-                id_grupo: grupoAtivoAtual.id,
-                titulo_tarefa: titulo,
-                data: dataStr
-            });
+            const { error } = await supabaseClient
+                .from('rotinas_log')
+                .insert([{
+                    id_grupo: grupoAtivoAtual.id,
+                    titulo_tarefa: titulo,
+                    data: dataStr,
+                    status: 'Pendente'
+                }]);
 
-            if (res.status === "sucesso") {
+            if (!error) {
                 document.getElementById('nova-rotina-titulo').value = '';
                 carregarRotinas();
             } else {
-                alert(res.mensagem);
+                alert("Erro ao adicionar tarefa.");
             }
         }
 
         async function alternarStatusRotina(idTarefa, isChecked) {
             const status = isChecked ? "Concluido" : "Pendente";
-            const horario = isChecked ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+            const horario = isChecked ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
             
-            const res = await requisicaoAPI({
-                acao: "atualizar_status_rotina",
-                id_tarefa: idTarefa,
-                status: status,
-                feito_por_id: isChecked ? usuarioLogado.id : "",
-                horario_conclusao: horario
-            });
+            const { error } = await supabaseClient
+                .from('rotinas_log')
+                .update({
+                    status: status,
+                    feito_por_id: isChecked ? usuarioLogado.id : null,
+                    horario_conclusao: horario
+                })
+                .eq('id', idTarefa);
 
-            if (res.status === "sucesso") {
+            if (!error) {
                 carregarRotinas();
             } else {
-                alert(res.mensagem);
+                alert("Erro ao atualizar status da tarefa.");
             }
         }
     </script>
