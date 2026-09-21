@@ -390,7 +390,6 @@
             const dataStr = document.getElementById('filtro-data').value; // YYYY-MM-DD
             
             // Descobre o dia da semana (0 = Domingo, 1 = Segunda, etc.)
-            // Ajustamos o split para evitar problemas de timezone local
             const partesData = dataStr.split('-');
             const dataObj = new Date(partesData[0], partesData[1] - 1, partesData[2]);
             const diaSemana = dataObj.getDay();
@@ -404,7 +403,6 @@
             if (!error && rotinas) {
                 // Filtra no navegador aquelas cuja recorrência inclua o dia da semana atual
                 const rotinasFiltradas = rotinas.filter(r => {
-                    // Se foi criada especificamente para esta data OU se repete neste dia da semana
                     const diasRep = r.dias_repeticao || [];
                     return r.data === dataStr || diasRep.includes(diaSemana);
                 });
@@ -425,12 +423,12 @@
                 let concluida = r.status === "Concluido";
                 let nomeResponsavel = r.usuarios ? r.usuarios.nome : "Desconhecido";
                 let div = document.createElement('div');
-                div.className = "py-3 flex items-center justify-between";
+                div.className = "py-3 flex items-center justify-between border-b border-slate-100 last:border-b-0";
                 
                 let horarioTexto = r.horario_previsto ? `<span class="text-xs text-indigo-600 font-semibold mr-2">🕒 ${r.horario_previsto}</span>` : '';
 
                 div.innerHTML = `
-                    <div class="flex items-center space-x-3 w-full">
+                    <div class="flex items-center space-x-3 w-full pr-4">
                         <input type="checkbox" ${concluida ? 'checked' : ''} onchange="alternarStatusRotina('${r.id}', this.checked)" class="w-5 h-5 text-indigo-600 rounded cursor-pointer">
                         <div class="flex justify-between items-center w-full">
                             <div>
@@ -440,6 +438,9 @@
                             </div>
                         </div>
                     </div>
+                    <button onclick="excluirRotina('${r.id}')" title="Excluir tarefa" class="text-slate-400 hover:text-red-600 p-1.5 rounded transition text-sm">
+                        🗑️
+                    </button>
                 `;
                 container.appendChild(div);
             });
@@ -451,7 +452,6 @@
             const horarioPrevisto = document.getElementById('nova-rotina-horario').value || null;
             const dataStr = document.getElementById('filtro-data').value;
             
-            // Recolhe os dias da semana selecionados
             const checkboxes = document.querySelectorAll('.dia-check:checked');
             let diasRepeticao = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
@@ -491,6 +491,21 @@
                 .eq('id', idTarefa);
 
             carregarRotinas();
+        }
+
+        async function excluirRotina(idTarefa) {
+            if (!confirm("Tem certeza de que deseja excluir esta tarefa?")) return;
+
+            const { error } = await supabaseClient
+                .from('rotinas_log')
+                .delete()
+                .eq('id', idTarefa);
+
+            if (!error) {
+                carregarRotinas();
+            } else {
+                alert("Erro ao excluir a tarefa.");
+            }
         }
     </script>
 </body>
