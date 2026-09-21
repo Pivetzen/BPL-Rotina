@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>Rotinas Compartilhadas</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -161,6 +161,19 @@
 
     <!-- SCRIPT -->
     <script>
+        // Bloqueio extra de zoom via JavaScript para navegadores mobile modernos (Safari/Chrome)
+        document.addEventListener('gesturestart', function (e) {
+            e.preventDefault();
+        });
+        let ultimoToque = 0;
+        document.addEventListener('touchend', function (e) {
+            let agora = (new Date()).getTime();
+            if (agora - ultimoToque <= 300) {
+                e.preventDefault();
+            }
+            ultimoToque = agora;
+        }, { passive: false });
+
         const SUPABASE_URL = 'https://qfisuravprsqpzrsbzyt.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmaXN1cmF2cHJzcXB6cnNienl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDYyODIsImV4cCI6MjEwNTU4MjI4Mn0.PjuD-p7UJYAufZgafzNV3dTFfmkRK_ba11k0GeHSGK8';
 
@@ -170,8 +183,6 @@
         let gruposUsuario = [];
         let grupoAtivoAtual = null;
 
-        // Estado dos botões da semana (0: Dom, 1: Seg, ..., 6: Sáb)
-        // Por padrão, Seg a Sex selecionados (verdes) e Fim de semana desativados (vermelhos)
         let diasSelecionadosEstado = { 0: false, 1: true, 2: true, 3: true, 4: true, 5: true, 6: false };
 
         document.addEventListener('DOMContentLoaded', () => {
