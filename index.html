@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rotinas Compartilhadas</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -68,7 +68,10 @@
             <!-- GESTÃO DE GRUPOS E CONVITES -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-slate-100 grid md:grid-cols-2 gap-6">
                 <div class="space-y-4">
-                    <h2 class="text-md font-semibold text-slate-700 border-b pb-2">👥 Seu Grupo Ativo</h2>
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h2 class="text-md font-semibold text-slate-700">👥 Seu Grupo Ativo</h2>
+                        <span id="contador-grupos" class="text-xs font-medium text-slate-500">0/3 grupos</span>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <select id="select-grupo" onchange="mudarGrupoAtivo()" class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
                             <option value="">Carregando grupos...</option>
@@ -103,7 +106,7 @@
                     </div>
                 </div>
 
-                <!-- Adicionar Nova Rotina com Repetição -->
+                <!-- Adicionar Nova Rotina com Repetição Compacta -->
                 <form onsubmit="adicionarRotina(event)" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                     <h3 class="text-sm font-semibold text-slate-700">Adicionar Nova Tarefa Recorrente</h3>
                     
@@ -117,14 +120,8 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Repetir nos Dias da Semana:</label>
-                        <div class="flex flex-wrap gap-1.5" id="dias-semana-checkboxes">
-                            <label class="cursor-pointer bg-white px-2.5 py-1 border rounded text-xs font-medium hover:bg-indigo-50 select-none flex items-center gap-1"><input type="checkbox" value="0" class="dia-check"> Dom</label>
-                            <label class="cursor-pointer bg-white px-2.5 py-1 border rounded text-xs font-medium hover:bg-indigo-50 select-none flex items-center gap-1"><input type="checkbox" value="1" class="dia-check" checked> Seg</label>
-                            <label class="cursor-pointer bg-white px-2.5 py-1 border rounded text-xs font-medium hover:bg-indigo-50 select-none flex items-center gap-1"><input type="checkbox" value="2" class="dia-check" checked> Ter</label>
-                            <label class="cursor-pointer bg-white px-2.5 py-1 border rounded text-xs font-medium hover:bg-indigo-50 select-none flex items-center gap-1"><input type="checkbox" value="3" class="dia-check" checked> Qua</label>
-                            <label class="cursor-pointer bg-white px-2.5 py-1 border rounded text-xs font-medium hover:bg-indigo-50 select-none flex items-center gap-1"><input type="checkbox" value="4" class="dia-check" checked> Qui</label>
-                            <label class="cursor-pointer bg-white px-2.5 py-1 border rounded text-xs font-medium hover:bg-indigo-50 select-none flex items-center gap-1"><input type="checkbox" value="5" class="dia-check" checked> Sex</label>
-                            <label class="cursor-pointer bg-white px-2.5 py-1 border rounded text-xs font-medium hover:bg-indigo-50 select-none flex items-center gap-1"><input type="checkbox" value="6" class="dia-check"> Sáb</label>
+                        <div class="grid grid-cols-7 gap-1" id="dias-semana-botoes">
+                            <!-- Gerado dinamicamente via JS -->
                         </div>
                     </div>
 
@@ -173,14 +170,44 @@
         let gruposUsuario = [];
         let grupoAtivoAtual = null;
 
+        // Estado dos botões da semana (0: Dom, 1: Seg, ..., 6: Sáb)
+        // Por padrão, Seg a Sex selecionados (verdes) e Fim de semana desativados (vermelhos)
+        let diasSelecionadosEstado = { 0: false, 1: true, 2: true, 3: true, 4: true, 5: true, 6: false };
+
         document.addEventListener('DOMContentLoaded', () => {
             const hoje = new Date().toISOString().split('T')[0];
             document.getElementById('filtro-data').value = hoje;
+            renderizarBotoesDiasSemana();
 
             if (usuarioLogado) {
                 entrarNoSistema();
             }
         });
+
+        function renderizarBotoesDiasSemana() {
+            const container = document.getElementById('dias-semana-botoes');
+            container.innerHTML = '';
+            const nomesDias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+            for (let i = 0; i <= 6; i++) {
+                let selecionado = diasSelecionadosEstado[i];
+                let btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `py-1.5 rounded text-xs font-bold transition flex items-center justify-center select-none ${
+                    selecionado 
+                        ? 'bg-emerald-500 text-white shadow-sm' 
+                        : 'bg-red-500 text-white shadow-sm'
+                }`;
+                btn.innerText = nomesDias[i];
+                btn.onclick = () => alternarDiaSemana(i);
+                container.appendChild(btn);
+            }
+        }
+
+        function alternarDiaSemana(diaIndex) {
+            diasSelecionadosEstado[diaIndex] = !diasSelecionadosEstado[diaIndex];
+            renderizarBotoesDiasSemana();
+        }
 
         function alternarTabAuth(tab) {
             if (tab === 'login') {
@@ -289,6 +316,8 @@
             const select = document.getElementById('select-grupo');
             select.innerHTML = '';
             
+            document.getElementById('contador-grupos').innerText = `${gruposUsuario.length}/3 grupos`;
+
             if (gruposUsuario.length === 0) {
                 select.innerHTML = '<option value="">Nenhum grupo ativo</option>';
                 document.getElementById('painel-rotinas').classList.add('hidden');
@@ -341,11 +370,19 @@
         }
 
         async function responderConvite(idGrupo, statusResposta) {
+            if (statusResposta === 'Aceito' && gruposUsuario.length >= 3) {
+                alert("Você já atingiu o limite máximo de 3 grupos ativos.");
+                return;
+            }
             await supabaseClient.from('membros_grupo').update({ status_convite: statusResposta }).eq('id_grupo', idGrupo).eq('id_usuario', usuarioLogado.id);
             carregarDadosUsuario();
         }
 
         function abrirModalCriarGrupo() {
+            if (gruposUsuario.length >= 3) {
+                alert("Você atingiu o limite máximo de 3 grupos ativos.");
+                return;
+            }
             document.getElementById('input-nome-grupo').value = '';
             document.getElementById('modal-grupo').classList.remove('hidden');
         }
@@ -355,6 +392,12 @@
         }
 
         async function salvarNovoGrupo() {
+            if (gruposUsuario.length >= 3) {
+                alert("Você atingiu o limite máximo de 3 grupos ativos.");
+                fecharModalCriarGrupo();
+                return;
+            }
+
             const nomeGrupo = document.getElementById('input-nome-grupo').value;
             if (!nomeGrupo) return;
 
@@ -381,27 +424,24 @@
                 alert("Convite enviado!");
                 document.getElementById('email-convidado').value = '';
             } else {
-                alert("Usuário já convidado ou no grupo.");
+                alert("Usuário já convidado ou no grupo (ou o usuário convidado atingiu o limite de grupos).");
             }
         }
 
         async function carregarRotinas() {
             if (!grupoAtivoAtual) return;
-            const dataStr = document.getElementById('filtro-data').value; // YYYY-MM-DD
+            const dataStr = document.getElementById('filtro-data').value;
             
-            // Descobre o dia da semana (0 = Domingo, 1 = Segunda, etc.)
             const partesData = dataStr.split('-');
             const dataObj = new Date(partesData[0], partesData[1] - 1, partesData[2]);
             const diaSemana = dataObj.getDay();
 
-            // Busca todas as tarefas do grupo
             const { data: rotinas, error } = await supabaseClient
                 .from('rotinas_log')
                 .select('*, usuarios(nome)')
                 .eq('id_grupo', grupoAtivoAtual.id);
 
             if (!error && rotinas) {
-                // Filtra no navegador aquelas cuja recorrência inclua o dia da semana atual
                 const rotinasFiltradas = rotinas.filter(r => {
                     const diasRep = r.dias_repeticao || [];
                     return r.data === dataStr || diasRep.includes(diaSemana);
@@ -452,8 +492,12 @@
             const horarioPrevisto = document.getElementById('nova-rotina-horario').value || null;
             const dataStr = document.getElementById('filtro-data').value;
             
-            const checkboxes = document.querySelectorAll('.dia-check:checked');
-            let diasRepeticao = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            let diasRepeticao = [];
+            for (let i = 0; i <= 6; i++) {
+                if (diasSelecionadosEstado[i]) {
+                    diasRepeticao.push(i);
+                }
+            }
 
             if (!titulo || !grupoAtivoAtual) return;
 
