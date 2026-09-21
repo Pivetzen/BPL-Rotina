@@ -85,73 +85,88 @@
         <section id="app-section" class="hidden space-y-6">
 
             <!-- GESTÃO DE GRUPOS E CONVITES -->
-            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-100 grid md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h2 class="text-md font-semibold text-slate-700">👥 Seu Grupo Ativo</h2>
-                        <span id="contador-grupos" class="text-xs font-medium text-slate-500">0/3 grupos</span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <select id="select-grupo" onchange="mudarGrupoAtivo()" class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option value="">Carregando grupos...</option>
-                        </select>
-                        <button onclick="abrirModalCriarGrupo()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap transition">+ Novo</button>
-                    </div>
-
-                    <div id="painel-convite" class="pt-2 hidden">
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Convidar por E-mail</label>
-                        <div class="flex space-x-2">
-                            <input type="email" id="email-convidado" placeholder="email@exemplo.com" class="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <button onclick="enviarConvite()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm transition">Convidar</button>
-                        </div>
-                    </div>
+            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-100">
+                <!-- Título Clicável para Retrair/Expandir -->
+                <div onclick="toggleCard('conteudo-grupo', 'icone-seta-grupo')" class="flex justify-between items-center cursor-pointer select-none border-b pb-3">
+                    <h2 id="titulo-card-grupo" class="text-md font-semibold text-slate-700">👥 Seu Grupo Ativo</h2>
+                    <span id="icone-seta-grupo" class="text-slate-400 font-bold transition-transform duration-200">▼</span>
                 </div>
 
-                <div class="space-y-3">
-                    <h2 class="text-md font-semibold text-slate-700 border-b pb-2">📬 Convites Recebidos</h2>
-                    <div id="lista-convites-pendentes" class="space-y-2 max-h-40 overflow-y-auto">
-                        <p class="text-sm text-slate-400 italic">Nenhum convite pendente no momento.</p>
+                <div id="conteudo-grupo" class="grid md:grid-cols-2 gap-6 pt-4">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="text-sm font-medium text-slate-600">Selecionar Grupo</span>
+                            <span id="contador-grupos" class="text-xs font-medium text-slate-500">0/3 grupos</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <select id="select-grupo" onchange="mudarGrupoAtivo()" class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="">Carregando grupos...</option>
+                            </select>
+                            <button onclick="abrirModalCriarGrupo()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap transition">+ Novo</button>
+                        </div>
+
+                        <div id="painel-convite" class="pt-2 hidden">
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Convidar por E-mail</label>
+                            <div class="flex space-x-2">
+                                <input type="email" id="email-convidado" placeholder="email@exemplo.com" class="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <button onclick="enviarConvite()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm transition">Convidar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <span class="text-sm font-medium text-slate-600 border-b pb-2 block">📬 Convites Recebidos</span>
+                        <div id="lista-convites-pendentes" class="space-y-2 max-h-40 overflow-y-auto">
+                            <p class="text-sm text-slate-400 italic">Nenhum convite pendente no momento.</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- ROTINAS DIÁRIAS -->
-            <div id="painel-rotinas" class="bg-white p-5 rounded-xl shadow-md border border-slate-100 hidden space-y-4">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-3 gap-2">
+            <div id="painel-rotinas" class="bg-white p-5 rounded-xl shadow-md border border-slate-100 hidden">
+                <!-- Título Clicável para Retrair/Expandir -->
+                <div onclick="toggleCard('conteudo-rotinas', 'icone-seta-rotinas')" class="flex justify-between items-center cursor-pointer select-none border-b pb-3">
                     <h2 class="text-lg font-bold text-slate-800">📌 Rotinas do Grupo</h2>
-                    <div class="flex items-center space-x-2">
-                        <label class="text-sm text-slate-600 font-medium">Data:</label>
-                        <input type="date" id="filtro-data" onchange="carregarRotinas()" class="px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
+                    <span id="icone-seta-rotinas" class="text-slate-400 font-bold transition-transform duration-200">▼</span>
                 </div>
 
-                <!-- Adicionar Nova Rotina com Repetição Compacta -->
-                <form onsubmit="adicionarRotina(event)" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-700">Adicionar Nova Tarefa Recorrente</h3>
-                    
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <input type="text" id="nova-rotina-titulo" placeholder="Ex: Trocar areia dos gatos, Dar comida..." required class="flex-grow px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                        <div class="flex items-center space-x-1">
-                            <label class="text-xs text-slate-500 font-medium whitespace-nowrap">Horário:</label>
-                            <input type="time" id="nova-rotina-horario" class="px-2 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <div id="conteudo-rotinas" class="space-y-4 pt-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <span class="text-sm text-slate-600 font-medium">Filtrar por data das tarefas:</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="date" id="filtro-data" onchange="carregarRotinas()" class="px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Repetir nos Dias da Semana:</label>
-                        <div class="grid grid-cols-7 gap-1" id="dias-semana-botoes">
-                            <!-- Gerado dinamicamente via JS -->
+                    <!-- Adicionar Nova Rotina com Repetição Compacta -->
+                    <form onsubmit="adicionarRotina(event)" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <h3 class="text-sm font-semibold text-slate-700">Adicionar Nova Tarefa Recorrente</h3>
+                        
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="nova-rotina-titulo" placeholder="Ex: Trocar areia dos gatos, Dar comida..." required class="flex-grow px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                            <div class="flex items-center space-x-1">
+                                <label class="text-xs text-slate-500 font-medium whitespace-nowrap">Horário:</label>
+                                <input type="time" id="nova-rotina-horario" class="px-2 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="flex justify-end pt-1">
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Cadastrar Tarefa</button>
-                    </div>
-                </form>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Repetir nos Dias da Semana:</label>
+                            <div class="grid grid-cols-7 gap-1" id="dias-semana-botoes">
+                                <!-- Gerado dinamicamente via JS -->
+                            </div>
+                        </div>
 
-                <!-- Listagem de Tarefas -->
-                <div id="lista-rotinas" class="divide-y divide-slate-100 mt-4">
-                    <!-- Preenchido dinamicamente -->
+                        <div class="flex justify-end pt-1">
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Cadastrar Tarefa</button>
+                        </div>
+                    </form>
+
+                    <!-- Listagem de Tarefas -->
+                    <div id="lista-rotinas" class="divide-y divide-slate-100 mt-4">
+                        <!-- Preenchido dinamicamente -->
+                    </div>
                 </div>
             </div>
 
@@ -305,6 +320,19 @@
                 .replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
         
             input.value = "R$ " + formatted;
+        }
+
+        // Função global para retrair/expandir os cards
+        function toggleCard(contentId, arrowId) {
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(arrowId);
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                content.classList.add('hidden');
+                arrow.style.transform = 'rotate(-90deg)';
+            }
         }
     </script>
 
@@ -467,6 +495,7 @@
 
             if (gruposUsuario.length === 0) {
                 select.innerHTML = '<option value="">Nenhum grupo ativo</option>';
+                document.getElementById('titulo-card-grupo').innerText = "👥 Seu Grupo Ativo (Nenhum)";
                 document.getElementById('painel-rotinas').classList.add('hidden');
                 document.getElementById('painel-convite').classList.add('hidden');
                 return;
@@ -484,6 +513,9 @@
             }
             select.value = grupoAtivoAtual.id;
             
+            // Atualiza o título do card com o nome do grupo ativo
+            document.getElementById('titulo-card-grupo').innerText = `👥 Seu Grupo Ativo: ${grupoAtivoAtual.nome}`;
+
             document.getElementById('painel-rotinas').classList.remove('hidden');
             document.getElementById('painel-convite').classList.remove('hidden');
             carregarRotinas();
@@ -492,6 +524,9 @@
         function mudarGrupoAtivo() {
             const idSel = document.getElementById('select-grupo').value;
             grupoAtivoAtual = gruposUsuario.find(g => g.id === idSel);
+            if (grupoAtivoAtual) {
+                document.getElementById('titulo-card-grupo').innerText = `👥 Seu Grupo Ativo: ${grupoAtivoAtual.nome}`;
+            }
             carregarRotinas();
         }
 
