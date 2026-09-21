@@ -144,7 +144,6 @@
 
     <!-- SCRIPT DE CONEXÃO E LÓGICA -->
     <script>
-        // ⚠️ COLOQUE AQUI A SUA URL DE WEB APP DO GOOGLE APPS SCRIPT
         const URL_API = 'https://script.google.com/macros/s/AKfycbwHlUD1T05j9JpESqonKJi_qJubP-5nXHYesBy6MxCtDB7xYwccFMT0R6WmdRRelnWyfg/exec';
 
         let usuarioLogado = JSON.parse(localStorage.getItem('usuario_rotinas')) || null;
@@ -152,7 +151,6 @@
         let grupoAtivoAtual = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Inicializar data atual no filtro
             const hoje = new Date().toISOString().split('T')[0];
             document.getElementById('filtro-data').value = hoje;
 
@@ -259,14 +257,13 @@
                 return;
             }
 
-            gruposUsuario.forEach((g, index) => {
+            gruposUsuario.forEach((g) => {
                 let opt = document.createElement('option');
                 opt.value = g.id;
-                opt.innerText = g.nome + (g.dono_id === usuarioLogado.id ? ' (Admin)' : '');
+                opt.innerText = g.nome + (String(g.dono_id) === String(usuarioLogado.id) ? ' (Admin)' : '');
                 select.appendChild(opt);
             });
 
-            // Se não houver grupo ativo selecionado, seleciona o primeiro
             if (!grupoAtivoAtual || !gruposUsuario.some(g => g.id === grupoAtivoAtual.id)) {
                 grupoAtivoAtual = gruposUsuario[0];
             }
